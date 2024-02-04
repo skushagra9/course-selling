@@ -1,11 +1,10 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { Provider } from "next-auth/providers";
-import { connectToDatabase } from "../../../lib/db.Connect";
-import { Admin } from "db";
+import { PrismaClient } from '@prisma/client'
 import GoogleProvider from "next-auth/providers/google";
 
-
+const prisma = new PrismaClient();
 
 export const authOptions = {
   // Configure one or more authentication providers
@@ -24,29 +23,31 @@ export const authOptions = {
         secret: { label: "Secret", type: "text", placeholder: "Global_Secret" },
       },
       async authorize(credentials, req) {
-        await connectToDatabase();
-        if (!credentials) {
-          return null;
-        }
-        const username = credentials.username;
-        const secret = credentials.secret;
+        try {
+          const { username, secret } = credentials;
 
-        // Add logic here to look up the user from the credentials supplied
-        const admin = await Admin.findOne({ username });
-
-        if (!admin) {
-          console.log("No admin");
-        } else {
-          // TODO: Make this safer, encrypt passwords
-          if (secret !== process.env.GLOBAL_SECRET) {
+          if (!credentials) {
             return null;
           }
-          // User is authenticated
+
+          const admin = await prisma.admin.findUnique({
+            where: { username },
+          });
+
+          if (!admin || secret !== process.env.GLOBAL_SECRET) {
+            return null;
+          }
+
           return {
-            id: admin._id,
+            id: admin.id,
             email: admin.username,
-            userId: admin._id.toString(), // Include userId in the token
+            userId: admin.id.toString(),
           };
+        } catch (error) {
+          console.error("Error during authorization:", error);
+          return null;
+        } finally {
+          await prisma.$disconnect(); // Close Prisma connection
         }
       },
     }),
@@ -60,41 +61,46 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials, req) {
-        await connectToDatabase();
-        if (!credentials) {
-          return null;
-        }
-        const username = credentials.username;
-        const password = credentials.password;
-        // Add logic here to look up the user from the credentials supplied
-        const admin = await Admin.findOne({ username });
+        try {
+          const { username, password } = credentials;
 
-        if (!admin) {
-          const obj = { username: username, password: password };
-          const newAdmin = new Admin(obj);
-          let adminDb = await newAdmin.save();
-          console.log(adminDb);
-          return {
-            id: adminDb._id,
-            email: adminDb.username,
-            userId: adminDb._id.toString(), // Include userId in the token
-          };
-        } else {
-          // TODO: Make this safer, encrypt passwords
-          if (admin.password !== password) {
+          if (!credentials) {
             return null;
           }
-          req.session.user = {
-            id: admin._id, // Convert ObjectId to string
-            email: admin.username,
-            userId: admin._id.toString(), // Include userId
-          };
-          // User is authenticated
+
+          const admin = await prisma.admin.findUnique({
+            where: { username },
+          });
+
+          if (!admin) {
+            const newAdmin = await prisma.admin.create({
+              data: {
+                username,
+                password,
+              },
+            });
+
+            console.log(newAdmin);
+
+            return {
+              id: newAdmin.id,
+              email: newAdmin.username,
+              userId: newAdmin.id.toString(),
+            };
+          } else if (admin.password !== password) {
+            return null;
+          }
+
           return {
-            id: admin._id,
+            id: admin.id,
             email: admin.username,
-            userId: admin._id.toString(), // Include userId in the token
+            userId: admin.id.toString(),
           };
+        } catch (error) {
+          console.error("Error during authorization:", error);
+          return null;
+        } finally {
+          await prisma.$disconnect(); // Close Prisma connection
         }
       },
     }),

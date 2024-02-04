@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^5.9.1",
     "@repo/ui": "*",
     "@types/jsonwebtoken": "^9.0.5",
     "axios": "^1.6.2",
@@ -26,6 +27,7 @@
     "@types/node": "^20.10.2",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "prisma": "^5.9.1",
     "typescript": "^5.3.2"
   }
 }
