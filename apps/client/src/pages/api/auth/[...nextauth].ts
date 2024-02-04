@@ -40,7 +40,7 @@ export const authOptions = {
 
           return {
             id: admin.id,
-            email: admin.username,
+            username: admin.username,
             userId: admin.id.toString(),
           };
         } catch (error) {
@@ -84,7 +84,7 @@ export const authOptions = {
 
             return {
               id: newAdmin.id,
-              email: newAdmin.username,
+              username: newAdmin.username,
               userId: newAdmin.id.toString(),
             };
           } else if (admin.password !== password) {
@@ -93,7 +93,7 @@ export const authOptions = {
 
           return {
             id: admin.id,
-            email: admin.username,
+            username: admin.username,
             userId: admin.id.toString(),
           };
         } catch (error) {
@@ -110,7 +110,7 @@ export const authOptions = {
       // Modify the session object here
       if (user) {
         session.user.id = user.id;
-        session.user.email = user.email;
+        session.user.username = user.username;
         session.user.userId = user.userId;
       }
       return session;
